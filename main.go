@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-
+const iscsiDefaultLun = 1
 
 func main() {
 	fs := flag.NewFlagSet("iscsi helper", flag.ExitOnError)
@@ -19,14 +19,20 @@ func main() {
 		iscsi.EnableDebugLogging(os.Stdout)
 	}
 
+	showOptions()
+}
+
+func showOptions()  {
 	option := util.FirstPageHint()
 	switch option {
 	case util.CommandLineOption_List_Sessions:
-		fmt.Println("List sessions")
+		fmt.Println()
+		listIscsiSessions()
 		break
 
 	case util.CommandLineOption_ISCSI_Login:
-		fmt.Println("ISCSI login")
+		fmt.Println()
+		iscsiLogin()
 		break
 
 	case util.CommandLineOption_ISCSI_Logout:
@@ -40,39 +46,46 @@ func main() {
 	default:
 		os.Exit(0)
 	}
+	showOptions()
 }
 
+func listIscsiSessions() {
+	iscsiSessions, err := iscsi.GetCurrentSessions()
+	if err != nil {
+		fmt.Printf("failed to list the ISCSI sessions. error: %v\n", err)
+		os.Exit(1)
+	}
 
-//func iscsiLogin(config *util.Config)  {
-//	targetIqnList, err := iscsi.Discovery(config.TargetAddress, "default")
-//	if err != nil {
-//		fmt.Println(err)
-//		os.Exit(1)
-//	}
-//
-//	selected := 0
-//	for selected <= 0 || selected > len(targetIqnList) {
-//		fmt.Println("Discovered targets:")
-//		for index, targetIqn := range targetIqnList {
-//			fmt.Printf("  [%d] %s\n", index + 1, targetIqn)
-//		}
-//		fmt.Printf("Please select the iqn want to login: ")
-//		 _, _ = fmt.Scanf("%d", &selected)
-//		if selected <= 0 || selected > len(targetIqnList) {
-//			fmt.Printf("[Error] invalid index of the target iqn, it should be [1, %d].\n", len(targetIqnList))
-//		}
-//	}
-//	config.TargetIqn = targetIqnList[selected - 1]
-//
-//	fmt.Println("try to login to the iscsi target: ", config.TargetIqn)
-//	connector := iscsi.Connector{
-//		TargetIqn: config.TargetIqn,
-//		TargetPortals: []string{config.TargetAddress},
-//		Lun: 1}
-//	device, err := connector.Connect()
-//	if err != nil {
-//		fmt.Printf("failed to connect the remote iqn: %s, error: %v\n", config.TargetIqn, err)
-//		os.Exit(1)
-//	}
-//	fmt.Printf("Logging in the %s on device %s successfully.\n", config.TargetIqn, device)
-//}
+	if len(iscsiSessions) == 0 {
+		fmt.Println("No session found.")
+		showOptions()
+	}
+
+	fmt.Println("Current ISCSI session: ")
+	for _, session := range iscsiSessions {
+		fmt.Println("  " + session.ToString())
+	}
+}
+
+func iscsiLogin()  {
+	targetAddress := util.Hint("", "ISCSI IP Address: ", nil, "%s")
+
+	targetIqnList, err := iscsi.Discovery(targetAddress, "default")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	targetIqn := util.Hint("Discovered targets:", "Please select the iqn want to login:", targetIqnList, "%d")
+
+	connector := iscsi.Connector{
+		TargetIqn:     targetIqn,
+		TargetPortals: []string{targetAddress},
+		Lun:           iscsiDefaultLun}
+	device, err := connector.Connect()
+	if err != nil {
+		fmt.Printf("failed to connect the remote iqn: %s, error: %v\n", targetIqn, err)
+		os.Exit(1)
+	}
+	fmt.Printf("Logging in the %s on device %s successfully.\n", targetIqn, device)
+}

@@ -21,6 +21,7 @@ var CommandLineOptions = []string {
 }
 
 func FirstPageHint() CommandLineOption_ {
+	fmt.Println()
 	selected := Hint("Select the action: ", "action you choose: ", CommandLineOptions, "%d")
 	return mapCommandLineOption(selected)
 }
@@ -33,7 +34,7 @@ func Hint(title, hint string, choices []string, scanFormat string) string {
 	if choices != nil  && len(choices) != 0 {
 		selectedChoice = true
 		for index, choice := range choices {
-			fmt.Printf(  "[%d] %s\n", index + 1, choice)
+			fmt.Printf(  "  [%d] %s\n", index + 1, choice)
 		}
 	}
 	if selectedChoice {

@@ -808,3 +808,7 @@ func (d *Device) Delete() error {
 func (d *Device) Rescan() error {
 	return d.WriteDeviceFile("rescan", "1")
 }
+
+func (session *iscsiSession) ToString() string {
+	return fmt.Sprintf("id: %d portal: %s iqn: %s", session.ID, session.Portal, session.IQN)
+}
